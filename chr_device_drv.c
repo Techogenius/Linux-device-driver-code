@@ -20,6 +20,7 @@
 #define IRQ_NO 1 
 
 unsigned int i =0;
+unsigned int sysfs_val = 0;
 
 void tasklet_func(unsigned long );
 
@@ -27,6 +28,11 @@ struct tasklet_struct *tasklet;
 unsigned long chr_spinlock_variable =0;
 
 static struct timer_list chr_timer;
+/* Declare the kernel object */
+struct kobject *kobj_ref;
+
+
+
 
 /* Declare the tasklet */
 
@@ -38,7 +44,7 @@ DEFINE_SPINLOCK(chr_spinlock);
 
 void timer_callback(struct timer_list *timer)
 {
-	printk(KERN_INFO"in Timer callback function[%d]\n",i++);
+	//printk(KERN_INFO"in Timer callback function[%d]\n",i++);
 
 	// Re-enable the timer which will make this as periodic timer */
 
@@ -68,7 +74,6 @@ static irqreturn_t irq_handler(int irq,void *dev_id) {
 dev_t dev = 0;
 static struct class *dev_class;
 static struct cdev chr_cdev;
-struct kobject *kobj_ref;
  
 static int __init chr_driver_init(void);
 static void __exit chr_driver_exit(void);
@@ -81,6 +86,12 @@ static int chr_open(struct inode *inode, struct file *file);
 static int chr_release(struct inode *inode, struct file *file);
 static ssize_t chr_read(struct file *filp,char __user *buf, size_t len,loff_t * off);
 static ssize_t chr_write(struct file *filp,const char *buf, size_t len, loff_t * off); 
+
+/*****************Sysfs Functions**********************/
+static ssize_t sysfs_show(struct kobject *kobj,struct kobj_attribute *attr,char *buf);
+static ssize_t sysfs_store(struct kobject *kobj,struct kobj_attribute *attr,const char *buf,size_t count);
+
+struct kobj_attribute sysfs_attr = __ATTR(sysfs_val,0660,sysfs_show,sysfs_store);
 
 int thrd_func1(void *p);
 int thrd_func2(void *p);
@@ -131,6 +142,22 @@ static struct file_operations fops =
         .open           = chr_open,
         .release        = chr_release,
 };
+
+/**********************sysfs function defination*****************/
+
+static ssize_t sysfs_show(struct kobject *kobj,struct kobj_attribute *attr,char *buf)
+{
+	printk(KERN_INFO" Reading - sysfs show func...\n");
+	return sprintf(buf,"%d",sysfs_val);
+}
+
+
+static ssize_t sysfs_store(struct kobject *kobj,struct kobj_attribute *attr,const char *buf,size_t count)
+{
+	printk(KERN_INFO" Writing - sysfs store function....\n");
+	sscanf(buf,"%d",&sysfs_val);
+	return count;
+}
   
 static int chr_open(struct inode *inode, struct file *file)
 {
@@ -186,6 +213,16 @@ static int __init chr_driver_init(void)
             goto r_device;
         }
 
+	/* creating the directory in /sys/kernel */
+	kobj_ref = kobject_create_and_add("my_sysfs",kernel_kobj);
+
+	/* creating the sysfs file */
+	if(sysfs_create_file(kobj_ref,&sysfs_attr.attr))
+	{
+		printk(KERN_INFO"Unable to create the sysfs file...\n");
+		goto r_sysfs;
+	}
+
         if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "chr_device", (void *)(irq_handler))) {
             printk(KERN_INFO "chr_device: cannot register IRQ ");
                     goto irq;
@@ -228,7 +265,9 @@ static int __init chr_driver_init(void)
  
 irq:
         free_irq(IRQ_NO,(void *)(irq_handler));
-
+r_sysfs:
+	kobject_put(kobj_ref);
+	sysfs_remove_file(kernel_kobj,&sysfs_attr.attr);
 r_device:
         class_destroy(dev_class);
 r_class:
@@ -241,6 +280,8 @@ void __exit chr_driver_exit(void)
 {
 	kthread_stop(chr_thread1);
 	kthread_stop(chr_thread2);
+	kobject_put(kobj_ref);
+	sysfs_remove_file(kernel_kobj,&sysfs_attr.attr);
         free_irq(IRQ_NO,(void *)(irq_handler));
 	tasklet_kill(tasklet);
 	del_timer(&chr_timer);
