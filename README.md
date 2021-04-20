@@ -1,5 +1,6 @@
 # Linux-device-driver-code
-Linux device driver code base. This repo is for practising Linux driver development. Following is the itinerary:
+  
+  This repo is for kernel enthusiasts for practising Linux driver development. Following is the itinerary:
 
 - Linux Device Driver(Part 1): Linux character driver implementation
 - Linux Device Driver(Part 2) | Linux Character Driver Programming | Kernel Driver & User Application
@@ -19,4 +20,6 @@ Linux device driver code base. This repo is for practising Linux driver developm
 - Linux Device Driver (Part-15) | Linux USB Device Driver 
 - Linux Device Tree (Part-16) Demonstrate with UART Device Driver | Connection between Driver & Device
 
-Note: Not all source codes in the repo.
+Note: Not all source codes in the repo. Watch the videos for complete code base.
+
+Tutorial Videos: https://www.youtube.com/channel/UCVZC27C8IHyQ4MDQHD0stww
