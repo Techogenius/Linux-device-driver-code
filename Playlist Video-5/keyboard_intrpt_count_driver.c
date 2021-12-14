@@ -153,6 +153,7 @@ static int __init chr_driver_init(void) {
 }
 
 void __exit chr_driver_exit(void) {
+	free_irq(IRQ_NO, (void *)(irq_handler) ) ;
 	device_destroy(dev_class, dev) ;
 	class_destroy(dev_class) ;
 	cdev_del(&chr_cdev) ;
